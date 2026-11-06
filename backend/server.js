@@ -10,7 +10,16 @@ const SOSRequest = require('./models/SOSRequest');
 const { roomName } = require('./utils/rooms');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
-const origins = (process.env.CLIENT_URL || '*').split(',').map((s) => s.trim());
+if (!process.env.JWT_SECRET || !process.env.MONGO_URI) {
+  console.error('Missing required env vars: JWT_SECRET and/or MONGO_URI');
+  process.exit(1);
+}
+
+// Browsers send Origin without a trailing slash, so normalise CLIENT_URL entries
+const origins = (process.env.CLIENT_URL || '*')
+  .split(',')
+  .map((s) => s.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
 const corsOrigin = origins.includes('*') ? true : origins;
 
 const app = express();

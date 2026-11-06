@@ -1,0 +1,51 @@
+# Render Blueprint for LifeLink (backend API + Socket.IO, frontend static site)
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  # ---------- Backend: Express + Socket.IO ----------
+  - type: web
+    name: lifelink-api
+    runtime: node
+    rootDir: backend
+    plan: free
+    region: singapore          # closest to Chennai; change if you like
+    buildCommand: npm ci
+    # Creates the admin user if it doesn't exist yet (no-op otherwise), then starts the API
+    startCommand: npm run seed:admin && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: MONGO_URI          # MongoDB Atlas connection string
+        sync: false
+      - key: CLIENT_URL         # frontend URL, e.g. https://lifelink-web.onrender.com
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_PHONE
+        sync: false
+
+  # ---------- Frontend: Vite static site ----------
+  - type: web
+    name: lifelink-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: VITE_SOCKET_URL    # backend URL, e.g. https://lifelink-api.onrender.com (no trailing slash, no /api)
+        sync: false
+    routes:
+      # SPA fallback so /login, /sos-board etc. work on refresh / direct links
+      - type: rewrite
+        source: /*
+        destination: /index.html
